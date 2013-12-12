@@ -52,3 +52,187 @@
 ## 交互说明
 
 1. 中心思想的位置固定，不可拖动
+=======
+1. 支持两种布局模式：自由布局和自动布局
+2. 自动布局描述
+    1) 子树自动和父节点居中对齐
+    2) 子树增长会导致这棵树递归调整位置，保证不会出现重叠的情形
+    3) 默认一级节点会在右面展开，如果右面的节点超过一定高度（比如300像素），那么将会在左右两边挑选高度最小的一面展开
+3. 自由模式布局描述
+    1）一级节点直接按照规律展开
+    2）节点可以拖动，拖动是包括字节点整棵树的
+    3）子节点增长不调整其他节点的位置
+4. 支持拖动改变子树
+5. 支持画布拖放和缩放
+6. 数据导出导入（Json格式）
+
+# 整体设计
+
+
+
+## MinderTreeNode
+提供树遍历、操作等方法
+
+### `method` getParentNode() : MinderTreeNode
+获取父级节点
+
+### `method` getChildNodes() : MinderTreeNode[]
+获取所有的子节点
+
+### `method` getIndexOfParent() : int
+获取当前节点在父节点中的位置
+
+### `method` insertNode(MinderTreeNode node, int index) : this
+插入子节点到指定的位置，不指定 index 插入到最后
+
+### `method` removeNode(MinderTreeNode node | int index) : this
+删除指定位置的节点或指定的节点
+
+### `method` getRenderContainer() : kity.Group
+获取用于渲染图形的容器
+
+### `method` setData(string name, object value) : this
+在节点上附加数据
+
+### `method` getData(string name) : object
+获取节点上附加的数据
+
+
+
+## MindModule
+表示控制脑图中一个功能的模块（布局、渲染、输入文字、图标叠加等）
+
+### load(Minder minder) : this
+模块装载的时候被调用
+
+### destroy() : this
+模块卸载时被调用
+
+## LayouModule `abstract`
+提供节点布局功能的模块
+
+## RenderModule `abstract`
+提供节点渲染功能的模块
+
+## EditModule `abstract`
+提供节点编辑功能的模块
+
+## ConnectModule `abstract`
+提供节点之间连接功能的模块
+
+## AutoLayoutModule
+提供自动布局功能的模块
+
+## FreeLayoutModule
+提供自由布局功能的模块
+
+## DefaultRenderModule
+提供默认渲染功能的模块
+
+## TextEditModule
+提供节点文本编辑的模块
+
+## BezierConnectModule
+提供节点之间连接曲线的模块
+
+
+## Minder
+脑图使用类
+> base: Paper
+
+### `constructor` Minder(HTMLDomElement container)
+创建脑图画布，并且将其放在指定的容器上
+
+### `method` getRoot() : MinderNode
+获取脑图根节点
+
+### `method` addModule(MindModule module) : this
+添加脑图功能模块
+
+### `method` removeModule(MindModule module) : this
+移除脑图功能模块
+
+### `method` replaceModule(MindModule current, MindModule replace)
+替换脑图功能模块
+
+### `method` getModuleOfType(KityClass moduleClass) : Module[]
+获取具有指定类型的脑图模块
+
+### `method` undo() : this
+撤销上一步操作
+
+### `method` redo() : this
+如果有被撤销的步骤，恢复之
+
+### `method` export() : object
+以导出节点以及所有子树的数据（data上所有的字段会被导出）
+
+### `method` import(object data) : this
+导入节点数据，会节点以及所有子树结构以及子树数据
+
+### `event` beforeinsert(evt)
+表示节点上准备有子节点插入
+
+`evt.targetNode` 表示发生准备插入子树的节点
+
+`evt.insertIndex` 表示将要插入的节点插入的目标位置
+
+`evt.insertNode` 表示将要插入的子树节点
+
+`evt.cancel` 表示是否要阻止节点的插入，设置为 true 阻止节点插入
+
+### `event` afterinsert(evt)
+表示节点或子树发生了节点插入
+
+`evt.targetNode` 表示插入了子树节点的父节点
+
+`evt.insertIndex` 表示插入的子树在父节点的位置
+
+`evt.insertNode` 表示插入的子树节点
+
+### `event` beforeremove(evt)
+
+表示节点上准备有子节点被移除
+
+`evt.targetNode` 表示准备移除子节点的节点
+
+`evt.removeIndex` 表示要移除的子节点在父节点中的位置
+
+`evt.removeNode` 表示要移除的子节点（注意，此时子节点还在父节点上）
+
+`evt.cancel` 表示是否要阻止节点的移除，设置为 true 阻止节点移除
+
+### `event` beforedatachange(evt)
+
+表示节点的数据发生了变化
+
+`evt.targetNode` 表示数据发生变化的节点
+
+`evt.dataField` 表示发生变化的数据字段
+
+`evt.originValue` 表示数据发生变化前的值
+
+`evt.newValue` 表示数据将要设置的新值
+
+`evt.cancel` 表示是否要阻止数据的变化，设置为 true 阻止数据变化
+
+### `event` afterdatachange(evt)
+表示节点的数据发生了变化
+
+`evt.targetNode` 表示数据发生变化的节点
+
+`evt.dataField` 表示发生变化的数据字段
+
+`evt.originValue` 表示数据发生变化前的值
+
+`evt.newValue` 表示数据将要设置的新值
+
+### `event` click(evt)、mousedown(evt)、mouseup(evt)、mousemove(evt)
+表示节点点击的相关事件
+
+`evt.targetNode` 表示事件发生的 Minder 节点
+
+`evt.getPosition()` 获取事件发生时鼠标位置在 Paper 上的位置
+
+### `event` keydown(evt)、keyup(evt)、keypress(evt)
+表示发生的键盘事件
